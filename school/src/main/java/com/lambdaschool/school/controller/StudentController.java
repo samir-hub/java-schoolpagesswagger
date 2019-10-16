@@ -1,8 +1,12 @@
 package com.lambdaschool.school.controller;
 
+import com.lambdaschool.school.model.Course;
 import com.lambdaschool.school.model.Student;
 import com.lambdaschool.school.service.StudentService;
+import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +16,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import javax.validation.Valid;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -20,9 +25,29 @@ public class StudentController
 {
     @Autowired
     private StudentService studentService;
+    @ApiOperation(value= "return all Students", response=Course.class, responseContainer = "List")
 
-    // Please note there is no way to add students to course yet!
+    @ApiImplicitParams({
+                               @ApiImplicitParam(name = "page", dataType = "integer", paramType = "query",
+                                                 value = "Results page you want to retrieve (0..N)"),
+                               @ApiImplicitParam(name = "size", dataType = "integer", paramType = "query",
+                                                 value = "Number of records per page."),
+                               @ApiImplicitParam(name = "sort", allowMultiple = true, dataType = "string", paramType = "query",
+                                                 value = "Sorting criteria in the format: property(,asc|desc). " +
+                                                         "Default sort order is ascending. " +
+                                                         "Multiple sort criteria are supported.")})
 
+
+    //http://localhost:2019/students/students/paging/?page=1&size=10
+    //http://localhost:2019/students/students/paging/?sort=city&sort=name
+    @GetMapping(value = "/students/paging", produces = {"application/json"})
+    public ResponseEntity<?> listAllStudentsByPage(@PageableDefault(page=0,
+                                                                   size=3)
+                                                          Pageable pageable)
+    {
+        List<Student> myStudents = studentService.findAllPageable(pageable);
+        return new ResponseEntity<>(myStudents, HttpStatus.OK);
+    }
     @GetMapping(value = "/students", produces = {"application/json"})
     public ResponseEntity<?> listAllStudents()
     {
@@ -30,6 +55,12 @@ public class StudentController
         return new ResponseEntity<>(myStudents, HttpStatus.OK);
     }
 
+    @ApiOperation(value = "Retrieves a student associated with the studentid",
+                  response = Student.class)
+    @ApiResponses(value= {@ApiResponse(code = 200,
+                                       message = "Student Found",
+                                       response = Student.class),
+    @ApiResponse(code = 404, message = "Student Not Found", response = Student.class)})
     @GetMapping(value = "/Student/{StudentId}",
                 produces = {"application/json"})
     public ResponseEntity<?> getStudentById(
@@ -40,7 +71,12 @@ public class StudentController
         return new ResponseEntity<>(r, HttpStatus.OK);
     }
 
-
+    @ApiOperation(value = "Retrieves a student that contains the input",
+                  response = Student.class)
+    @ApiResponses(value= {@ApiResponse(code = 200,
+                                       message = "Student Found",
+                                       response = Student.class),
+            @ApiResponse(code = 404, message = "Student Not Found", response = Student.class)})
     @GetMapping(value = "/student/namelike/{name}",
                 produces = {"application/json"})
     public ResponseEntity<?> getStudentByNameContaining(
